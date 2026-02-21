@@ -1,18 +1,26 @@
 import axios from 'axios'
 
 const getApiUrl = () => {
-  // Use environment variable if set, otherwise default based on environment
+  // Priority 1: Use environment variable if set
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL
   }
   
-  // Development: use localhost
+  // Priority 2: Development environment
   if (import.meta.env.DEV) {
     return 'http://localhost:5000'
   }
   
-  // Production: use current domain (assuming backend is on same domain or use relative paths)
-  // For GitHub Pages, this would need a backend server accessible from that domain
+  // Priority 3: Production - check if we're on GitHub Pages
+  const hostname = window.location.hostname
+  if (hostname.includes('github.io')) {
+    // GitHub Pages - use a backend service (Heroku, Railway, etc.)
+    // You need to set VITE_API_URL environment variable during build
+    console.warn('GitHub Pages detected. Please set VITE_API_URL environment variable.')
+    return 'http://localhost:5000' // Fallback - won't work on GitHub Pages
+  }
+  
+  // Priority 4: Same domain (for self-hosted deployments)
   return window.location.origin
 }
 
@@ -23,6 +31,17 @@ const api = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+// Add error interceptor for better error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 0 || error.message === 'Network Error') {
+      console.error('Backend service unavailable. Make sure the backend is running.')
+    }
+    return Promise.reject(error)
+  }
+)
 
 export default api
 
