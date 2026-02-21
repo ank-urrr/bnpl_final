@@ -315,6 +315,9 @@ Visit your **Vercel frontend URL** (e.g., `https://bnpl-guardian.vercel.app`):
 6. Complete profile ✓
 7. Dashboard loads with data ✓
 
+**⚠️ If you see a white/blank screen instead:**
+See [TROUBLESHOOT_WHITE_SCREEN.md](TROUBLESHOOT_WHITE_SCREEN.md) for step-by-step debugging guide.
+
 ---
 
 ## Useful Links Reference
@@ -363,6 +366,14 @@ VITE_API_URL=https://<railway-domain>.railway.app
 ---
 
 ## Troubleshooting
+
+### Problem: White/Blank Screen on Frontend
+
+**Error**: Visit Vercel URL and see blank white page
+
+**Solution**: Follow [TROUBLESHOOT_WHITE_SCREEN.md](TROUBLESHOOT_WHITE_SCREEN.md)
+
+This has a detailed diagnostic checklist to debug the issue.
 
 ### Problem: CORS Error in Browser
 
