@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "homepage": "https://rudrakshgupta22.github.io/bnpl_clean",
+  
+  "homepage": "http://localhost:5173/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

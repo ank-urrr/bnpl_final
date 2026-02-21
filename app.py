@@ -515,6 +515,10 @@ def fetch_bnpl():
 if __name__ == "__main__":
     app.config.from_object(Config)
     init_db()
-    app.run(debug=True)
+    # Production: Gunicorn handles the server
+    # Local development: debug=True for hot reload
+    app.run(debug=os.getenv('FLASK_DEBUG', 'False') == 'True', 
+            host='0.0.0.0', 
+            port=int(os.getenv('PORT', 5000)))
 
 
