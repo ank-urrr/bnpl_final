@@ -24,6 +24,9 @@ const getApiUrl = () => {
   return window.location.origin
 }
 
+// Flag to track if code exchange is in progress
+let codeExchangePromise = Promise.resolve()
+
 const api = axios.create({
   baseURL: getApiUrl(),
   withCredentials: true,
@@ -36,8 +39,8 @@ const api = axios.create({
 const urlParams = new URLSearchParams(window.location.search)
 const authCode = urlParams.get('code')
 if (authCode && !localStorage.getItem('authToken')) {
-  // Exchange code for JWT token
-  api.get(`/auth/exchange-code?code=${authCode}`)
+  // Create a promise for code exchange and make it global
+  codeExchangePromise = axios.get(`${getApiUrl()}/auth/exchange-code?code=${authCode}`)
     .then(res => {
       if (res.data.token) {
         localStorage.setItem('authToken', res.data.token)
@@ -48,16 +51,22 @@ if (authCode && !localStorage.getItem('authToken')) {
     })
     .catch(err => {
       console.error('Failed to exchange auth code', err)
-      // Redirect to login on failure
+      // Redirect to login on failure after a short delay
       setTimeout(() => {
         window.location.href = '/'
-      }, 1000)
+      }, 500)
     })
 }
 
-// Add request interceptor to include JWT token
+// Add a global interceptor that waits for code exchange THEN adds token
 api.interceptors.request.use(
-  config => {
+  async config => {
+    // Wait for code exchange to complete before making API calls
+    if (codeExchangePromise) {
+      await codeExchangePromise
+    }
+    
+    // Add token to request
     const token = localStorage.getItem('authToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
