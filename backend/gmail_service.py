@@ -27,6 +27,12 @@ def create_flow():
         try:
             from flask import request
             backend_base = request.url_root.rstrip("/")
+            
+            # Force HTTPS for production (Railway and other cloud providers use proxy)
+            # If we detect we're on a production domain, force https
+            if "localhost" not in backend_base and "127.0.0.1" not in backend_base:
+                # Replace http:// with https:// for production
+                backend_base = backend_base.replace("http://", "https://")
         except Exception:
             backend_base = "http://localhost:5000"
 
