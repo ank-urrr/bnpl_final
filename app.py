@@ -15,6 +15,7 @@ import json
 from datetime import datetime, timedelta
 import uuid
 import json
+import requests
 
 load_dotenv()
 
@@ -95,6 +96,70 @@ os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    """
+    Simple chatbot endpoint that proxies to Google's Gemini API.
+    Expects JSON: { "message": string, "history": [{ "role": "user"|"assistant", "content": string }] }
+    """
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        return jsonify({"error": "Chatbot is not configured. Set GEMINI_API_KEY in backend env."}), 500
+
+    data = request.get_json() or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+
+    if not message:
+        return jsonify({"error": "Message is required"}), 400
+
+    # Build Gemini contents from last few turns to keep context small
+    contents = []
+    for turn in history[-8:]:
+        role = "user" if turn.get("role") == "user" else "model"
+        text = (turn.get("content") or "").strip()
+        if not text:
+            continue
+        contents.append({"role": role, "parts": [{"text": text}]})
+
+    contents.append({"role": "user", "parts": [{"text": message}]})
+
+    try:
+        resp = requests.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+            params={"key": gemini_key},
+            json={
+                "contents": contents,
+                "safetySettings": [
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                    {"category": "HARM_CATEGORY_SEXUAL_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+                ],
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+        candidates = payload.get("candidates") or []
+        if not candidates:
+            return jsonify({"error": "No response from AI"}), 502
+
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+        text = ""
+        for part in parts:
+            if "text" in part:
+                text += part["text"]
+
+        if not text:
+            return jsonify({"error": "Empty response from AI"}), 502
+
+        return jsonify({"reply": text})
+    except requests.RequestException as e:
+        print(f"[Chat] Request error: {e}")
+        return jsonify({"error": "Failed to contact AI service"}), 502
 
 @app.route("/api/user/email")
 def get_current_user_email():

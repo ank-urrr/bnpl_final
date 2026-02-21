@@ -8,6 +8,7 @@ import DashboardSection from '../components/DashboardSection'
 import FinancialHealthSection from '../components/FinancialHealthSection'
 import TransactionsSection from '../components/TransactionsSection'
 import EditProfileModal from '../components/EditProfileModal'
+import Chatbot from '../components/Chatbot'
 
 function NewDashboard() {
   const navigate = useNavigate()
@@ -362,6 +363,9 @@ function NewDashboard() {
         onClose={() => setShowProfileModal(false)}
         onSave={handleProfileUpdate}
       />
+
+      {/* Floating chatbot assistant */}
+      <Chatbot />
     </div>
   )
 }
