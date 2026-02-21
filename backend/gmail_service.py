@@ -1,5 +1,6 @@
 import os
 import base64
+import json
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from flask import session, redirect, request
@@ -13,8 +14,9 @@ def create_flow():
     """
     Create an OAuth2 Flow.
     Priority:
-      1. Use GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from env (recommended for production).
-      2. Fallback to client_secret.json if present (local development).
+      1. Use GMAIL_CLIENT_SECRETS from env (full JSON credentials)
+      2. Use GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from env
+      3. Fallback to client_secret.json if present (local development)
 
     Redirect URI is determined from BACKEND_URL env var if set, otherwise from the current request.url_root.
     """
@@ -30,7 +32,20 @@ def create_flow():
 
     redirect_uri = f"{backend_base}/auth/callback"
 
-    # If client id/secret are provided via env, use them (avoid committing secrets)
+    # Priority 1: Try to use GMAIL_CLIENT_SECRETS (full JSON from env)
+    gmail_secrets_json = os.getenv("GMAIL_CLIENT_SECRETS")
+    if gmail_secrets_json:
+        try:
+            client_config = json.loads(gmail_secrets_json)
+            # Ensure redirect_uris is set correctly
+            if "web" in client_config:
+                client_config["web"]["redirect_uris"] = [redirect_uri]
+            return Flow.from_client_config(client_config, scopes=SCOPES, redirect_uri=redirect_uri)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing GMAIL_CLIENT_SECRETS: {e}")
+            # Fall through to next option
+
+    # Priority 2: Use individual env vars
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
 
@@ -49,8 +64,13 @@ def create_flow():
 
         return Flow.from_client_config(client_config, scopes=SCOPES, redirect_uri=redirect_uri)
 
-    # Fallback to client_secret.json for local dev
-    return Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES, redirect_uri=redirect_uri)
+    # Priority 3: Fallback to client_secret.json for local dev
+    if os.path.exists(CLIENT_SECRETS_FILE):
+        return Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES, redirect_uri=redirect_uri)
+    
+    raise FileNotFoundError(
+        f"Gmail credentials not found. Please set GMAIL_CLIENT_SECRETS environment variable or place {CLIENT_SECRETS_FILE} in the app root."
+    )
 
 
 def get_gmail_service(credentials):
