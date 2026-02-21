@@ -38,24 +38,37 @@ const api = axios.create({
 // Handle auth code exchange on page load
 const urlParams = new URLSearchParams(window.location.search)
 const authCode = urlParams.get('code')
+
+console.log('[Auth] Checking for auth code:', authCode)
+console.log('[Auth] Token in storage:', !!localStorage.getItem('authToken'))
+
 if (authCode && !localStorage.getItem('authToken')) {
+  console.log('[Auth] Exchanging code for token:', authCode)
   // Create a promise for code exchange and make it global
   codeExchangePromise = axios.get(`${getApiUrl()}/auth/exchange-code?code=${authCode}`)
     .then(res => {
+      console.log('[Auth] Code exchange successful:', res.data)
       if (res.data.token) {
         localStorage.setItem('authToken', res.data.token)
+        console.log('[Auth] Token saved to localStorage')
         // Clean up URL to remove code parameter
         const newUrl = window.location.pathname
         window.history.replaceState({}, document.title, newUrl)
+        console.log('[Auth] URL cleaned:', newUrl)
       }
     })
     .catch(err => {
-      console.error('Failed to exchange auth code', err)
+      console.error('[Auth] Code exchange failed:', err.response?.data || err.message)
       // Redirect to login on failure after a short delay
       setTimeout(() => {
+        console.log('[Auth] Redirecting to login due to exchange failure')
         window.location.href = '/'
       }, 500)
     })
+} else if (authCode && localStorage.getItem('authToken')) {
+  console.log('[Auth] Token already exists, cleaning URL')
+  const newUrl = window.location.pathname
+  window.history.replaceState({}, document.title, newUrl)
 }
 
 // Add a global interceptor that waits for code exchange THEN adds token
@@ -63,7 +76,11 @@ api.interceptors.request.use(
   async config => {
     // Wait for code exchange to complete before making API calls
     if (codeExchangePromise) {
-      await codeExchangePromise
+      try {
+        await codeExchangePromise
+      } catch (err) {
+        console.error('[Auth] Code exchange promise failed:', err)
+      }
     }
     
     // Add token to request
@@ -71,9 +88,14 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    console.log(`[API] ${config.method.toUpperCase()} ${config.url}`)
     return config
   },
-  error => Promise.reject(error)
+  error => {
+    console.error('[API] Request error:', error)
+    return Promise.reject(error)
+  }
 )
 
 // Add error interceptor for better error handling
