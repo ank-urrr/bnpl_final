@@ -22,6 +22,66 @@ load_dotenv()
 AUTH_CODE_STORE = {}
 
 app = Flask(__name__)
+
+
+def get_user_email_from_request():
+    """Get current user email from JWT token (Authorization header) or session. Works for cross-origin (Vercel->Railway)."""
+    # 1. Try JWT from Authorization header (used by frontend after code exchange)
+    token = None
+    if request.headers.get("Authorization"):
+        parts = request.headers.get("Authorization").split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+    if token:
+        try:
+            payload = jwt.decode(
+                token,
+                app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")),
+                algorithms=["HS256"]
+            )
+            return payload.get("email")
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            pass
+    # 2. Fall back to session (same-origin or when cookie is sent)
+    return session.get("user_email")
+
+
+def get_credentials_from_request():
+    """Get Gmail credentials from JWT token or session. Returns (creds, user_email) or (None, None)."""
+    from google.oauth2.credentials import Credentials
+    # 1. Try JWT from Authorization header
+    token = None
+    if request.headers.get("Authorization"):
+        parts = request.headers.get("Authorization").split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+    if token:
+        try:
+            payload = jwt.decode(
+                token,
+                app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")),
+                algorithms=["HS256"]
+            )
+            user_email = payload.get("email")
+            creds_data = payload.get("credentials")
+            if user_email and creds_data:
+                creds = Credentials(
+                    token=creds_data.get("token"),
+                    refresh_token=creds_data.get("refresh_token"),
+                    token_uri=creds_data.get("token_uri"),
+                    client_id=creds_data.get("client_id"),
+                    client_secret=creds_data.get("client_secret"),
+                    scopes=creds_data.get("scopes") or []
+                )
+                return creds, user_email
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            pass
+    # 2. Fall back to session
+    creds = get_credentials_from_session(session)
+    if creds:
+        user_email = session.get("user_email") or get_user_email(creds)
+        return creds, user_email
+    return None, None
 # Configure CORS origins from environment (comma-separated) so production frontend can be allowed
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 CORS(app, supports_credentials=True, origins=cors_origins)
@@ -39,10 +99,12 @@ def health():
 @app.route("/api/user/email")
 def get_current_user_email():
     """Get authenticated user's email"""
+    user_email = get_user_email_from_request()
+    if user_email:
+        return jsonify({"email": user_email})
     creds = get_credentials_from_session(session)
     if not creds:
         return jsonify({"error": "Not authenticated"}), 401
-    
     user_email = get_user_email(creds)
     if user_email:
         session["user_email"] = user_email
@@ -52,10 +114,9 @@ def get_current_user_email():
 @app.route("/api/user/salary", methods=["GET", "POST"])
 def user_salary():
     """Get or update user salary"""
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({"error": "Not authenticated"}), 401
-    
-    user_email = session["user_email"]
     
     if request.method == "POST":
         data = request.get_json()
@@ -69,13 +130,12 @@ def user_salary():
 @app.route("/api/user/profile", methods=["GET", "POST", "PUT"])
 def user_profile():
     """Get or update user profile"""
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({
             "success": False,
             "message": "Not authenticated"
         }), 401
-    
-    user_email = session["user_email"]
     
     if request.method in ["POST", "PUT"]:
         data = request.get_json()
@@ -130,7 +190,7 @@ def sync_emails():
     """
     print("[Sync] Starting IDEMPOTENT email sync with STRICT filtering...")
     
-    creds = get_credentials_from_session(session)
+    creds, user_email = get_credentials_from_request()
     
     if not creds:
         print("[Sync] ERROR: Not authenticated")
@@ -140,8 +200,9 @@ def sync_emails():
             "data": None
         }), 401
     
-    # Get user email
-    user_email = get_user_email(creds)
+    # Get user email if not from token
+    if not user_email:
+        user_email = get_user_email(creds)
     if not user_email:
         print("[Sync] ERROR: Could not fetch user email")
         return jsonify({
@@ -248,10 +309,10 @@ def bnpl_records():
     Query params:
     - status: 'active', 'paid', or None for all
     """
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({"error": "Not authenticated"}), 401
     
-    user_email = session["user_email"]
     status_filter = request.args.get("status")  # Can be 'active', 'paid', or None
     
     records = get_bnpl_records(user_email, status_filter=status_filter)
@@ -266,10 +327,9 @@ def risk_score():
     """
     Calculate and return risk analysis.
     """
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({"error": "Not authenticated"}), 401
-    
-    user_email = session["user_email"]
     
     # Get user salary
     salary = get_user_salary(user_email)
@@ -287,10 +347,9 @@ def affordability():
     """
     Calculate affordability capacity for the user.
     """
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({"error": "Not authenticated"}), 401
-    
-    user_email = session["user_email"]
     
     # Get user profile
     profile = get_user_profile(user_email)
@@ -320,10 +379,9 @@ def mark_bnpl_paid(record_id):
     """
     Mark a BNPL record as paid and recalculate financial metrics.
     """
-    if "user_email" not in session:
+    user_email = get_user_email_from_request()
+    if not user_email:
         return jsonify({"error": "Not authenticated"}), 401
-    
-    user_email = session["user_email"]
     
     # Get the record
     record = get_bnpl_record_by_id(record_id)

@@ -109,7 +109,8 @@ function Onboarding() {
         setError(response.data.message || 'Failed to save profile')
       }
     } catch (err) {
-      setError('Failed to save profile. Please try again.')
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to save profile. Please try again.'
+      setError(msg)
       console.error('Onboarding error:', err)
     } finally {
       setLoading(false)
