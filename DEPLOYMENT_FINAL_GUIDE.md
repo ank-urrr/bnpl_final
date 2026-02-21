@@ -199,14 +199,50 @@ http://localhost:5000/auth/callback
 
 #### 4.7 Update Authorized JavaScript Origins
 
-```
-https://your-vercel-domain.vercel.app
-http://localhost:5173
-http://localhost:3000
-```
+This tells Google where your frontend is hosted so Gmail login redirects back correctly.
+
+**Step-by-step:**
+
+1. **You should still be on the Credentials page** (from 4.6)
+
+2. **Look for "Authorized JavaScript origins"** section in the OAuth Client settings
+
+3. **Click the "+ ADD URI" button** to add new origins
+
+4. **Add these three origins** (add each one separately):
+
+   **Origin 1: Your Vercel Frontend**
+   ```
+   https://your-vercel-domain.vercel.app
+   ```
+   - Replace `your-vercel-domain` with your actual Vercel domain
+   - Example: `https://bnpl-guardian.vercel.app`
+
+   **Origin 2: Local Development (Vite)**
+   ```
+   http://localhost:5173
+   ```
+
+   **Origin 3: Local Development (Alternative)**
+   ```
+   http://localhost:3000
+   ```
+
+5. **After adding each one**, you should see them listed like:
+   ```
+   ✓ https://bnpl-guardian.vercel.app
+   ✓ http://localhost:5173
+   ✓ http://localhost:3000
+   ```
+
+6. **Verify the list looks correct** before saving
 
 #### 4.8 Save Changes
-- Click "Save"
+- Scroll to the bottom of the form
+- Click the blue "Save" button
+- You should see a success message
+
+**⚠️ Important:** These must match exactly or Gmail login will fail with "Redirect URI mismatch" error
 
 ---
 
