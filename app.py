@@ -13,8 +13,13 @@ from dotenv import load_dotenv
 import jwt
 import json
 from datetime import datetime, timedelta
+import uuid
+import json
 
 load_dotenv()
+
+# Temporary storage for auth codes (maps code → credentials)
+AUTH_CODE_STORE = {}
 
 app = Flask(__name__)
 # Configure CORS origins from environment (comma-separated) so production frontend can be allowed
@@ -382,13 +387,46 @@ def login():
     session["state"] = state
     return redirect(auth_url)
 
+@app.route("/auth/exchange-code")
+def exchange_code():
+    """Exchange temporary auth code for credentials"""
+    code = request.args.get("code")
+    
+    if not code or code not in AUTH_CODE_STORE:
+        return jsonify({"authenticated": False, "error": "Invalid or expired code"}), 401
+    
+    auth_data = AUTH_CODE_STORE[code]
+    
+    # Check if code expired
+    if auth_data["expires"] < datetime.utcnow():
+        del AUTH_CODE_STORE[code]
+        return jsonify({"authenticated": False, "error": "Code expired"}), 401
+    
+    # Create JWT token
+    token = jwt.encode({
+        "email": auth_data["email"],
+        "exp": datetime.utcnow() + timedelta(days=30),
+        "credentials": auth_data["credentials"]
+    }, app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")), algorithm="HS256")
+    
+    # Cleanup
+    del AUTH_CODE_STORE[code]
+    
+    return jsonify({
+        "authenticated": True,
+        "email": auth_data["email"],
+        "token": token
+    })
+
 @app.route("/auth/status")
 def auth_status():
     """Check if user is authenticated"""
-    # Try to get JWT token from query param or Authorization header
-    token = request.args.get("token")
-    if not token and request.headers.get("Authorization"):
+    # Try to get JWT token from Authorization header or query param
+    token = None
+    if request.headers.get("Authorization"):
         token = request.headers.get("Authorization").split(" ")[-1]
+    elif request.args.get("token"):
+        token = request.args.get("token")
     
     if token:
         try:
@@ -446,10 +484,10 @@ def callback():
     if user_email:
         session["user_email"] = user_email
         
-        # Create JWT token for cross-domain auth
-        token = jwt.encode({
+        # Create a temporary auth code (short ID) to pass in URL
+        auth_code = str(uuid.uuid4())[:8]
+        AUTH_CODE_STORE[auth_code] = {
             "email": user_email,
-            "exp": datetime.utcnow() + timedelta(days=30),
             "credentials": {
                 "token": credentials.token,
                 "refresh_token": credentials.refresh_token,
@@ -457,19 +495,20 @@ def callback():
                 "client_id": credentials.client_id,
                 "client_secret": credentials.client_secret,
                 "scopes": list(credentials.scopes) if credentials.scopes else []
-            }
-        }, app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")), algorithm="HS256")
+            },
+            "expires": datetime.utcnow() + timedelta(minutes=5)
+        }
         
         # Check if user has completed profile
         profile = get_user_profile(user_email)
         if profile and profile.get("full_name"):
             # Existing user - go to dashboard
-            return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?token={token}")
+            return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?code={auth_code}")
         else:
             # New user - go to onboarding
-            return redirect(f"{FRONTEND_URL.rstrip('/')}/onboarding?token={token}")
+            return redirect(f"{FRONTEND_URL.rstrip('/')}/onboarding?code={auth_code}")
 
-    # Redirect to dashboard with success (fallback)
+    # Redirect to dashboard with error (fallback)
     return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?auth=failed")
 
 

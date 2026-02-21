@@ -32,14 +32,27 @@ const api = axios.create({
   }
 })
 
-// Check if token is in URL and store it
+// Handle auth code exchange on page load
 const urlParams = new URLSearchParams(window.location.search)
-const tokenFromUrl = urlParams.get('token')
-if (tokenFromUrl) {
-  localStorage.setItem('authToken', tokenFromUrl)
-  // Clean up URL to remove token parameter
-  const newUrl = window.location.pathname
-  window.history.replaceState({}, document.title, newUrl)
+const authCode = urlParams.get('code')
+if (authCode && !localStorage.getItem('authToken')) {
+  // Exchange code for JWT token
+  api.get(`/auth/exchange-code?code=${authCode}`)
+    .then(res => {
+      if (res.data.token) {
+        localStorage.setItem('authToken', res.data.token)
+        // Clean up URL to remove code parameter
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, document.title, newUrl)
+      }
+    })
+    .catch(err => {
+      console.error('Failed to exchange auth code', err)
+      // Redirect to login on failure
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1000)
+    })
 }
 
 // Add request interceptor to include JWT token
