@@ -32,10 +32,37 @@ const api = axios.create({
   }
 })
 
+// Check if token is in URL and store it
+const urlParams = new URLSearchParams(window.location.search)
+const tokenFromUrl = urlParams.get('token')
+if (tokenFromUrl) {
+  localStorage.setItem('authToken', tokenFromUrl)
+  // Clean up URL to remove token parameter
+  const newUrl = window.location.pathname
+  window.history.replaceState({}, document.title, newUrl)
+}
+
+// Add request interceptor to include JWT token
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  error => Promise.reject(error)
+)
+
 // Add error interceptor for better error handling
 api.interceptors.response.use(
   response => response,
   error => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear it
+      localStorage.removeItem('authToken')
+      window.location.href = '/'
+    }
     if (error.response?.status === 0 || error.message === 'Network Error') {
       console.error('Backend service unavailable. Make sure the backend is running.')
     }
@@ -44,4 +71,5 @@ api.interceptors.response.use(
 )
 
 export default api
+
 

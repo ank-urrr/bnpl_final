@@ -10,6 +10,9 @@ from backend.gmail_service import get_credentials_from_session
 from backend.parser import parse_bnpl_email, is_bnpl_email
 import os
 from dotenv import load_dotenv
+import jwt
+import json
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -382,6 +385,31 @@ def login():
 @app.route("/auth/status")
 def auth_status():
     """Check if user is authenticated"""
+    # Try to get JWT token from query param or Authorization header
+    token = request.args.get("token")
+    if not token and request.headers.get("Authorization"):
+        token = request.headers.get("Authorization").split(" ")[-1]
+    
+    if token:
+        try:
+            payload = jwt.decode(token, app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")), algorithms=["HS256"])
+            user_email = payload.get("email")
+            
+            # Store credentials in session from token
+            if "credentials" in payload:
+                session["credentials"] = payload["credentials"]
+                session["user_email"] = user_email
+            
+            return jsonify({
+                "authenticated": True,
+                "email": user_email
+            })
+        except jwt.ExpiredSignatureError:
+            return jsonify({"authenticated": False, "error": "Token expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"authenticated": False, "error": "Invalid token"}), 401
+    
+    # Fall back to session-based auth
     creds = get_credentials_from_session(session)
     if creds:
         user_email = session.get("user_email")
@@ -418,17 +446,31 @@ def callback():
     if user_email:
         session["user_email"] = user_email
         
+        # Create JWT token for cross-domain auth
+        token = jwt.encode({
+            "email": user_email,
+            "exp": datetime.utcnow() + timedelta(days=30),
+            "credentials": {
+                "token": credentials.token,
+                "refresh_token": credentials.refresh_token,
+                "token_uri": credentials.token_uri,
+                "client_id": credentials.client_id,
+                "client_secret": credentials.client_secret,
+                "scopes": list(credentials.scopes) if credentials.scopes else []
+            }
+        }, app.config.get("SECRET_KEY", os.getenv("SECRET_KEY", "default-secret")), algorithm="HS256")
+        
         # Check if user has completed profile
         profile = get_user_profile(user_email)
         if profile and profile.get("full_name"):
             # Existing user - go to dashboard
-            return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?auth=success")
+            return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?token={token}")
         else:
             # New user - go to onboarding
-            return redirect(f"{FRONTEND_URL.rstrip('/')}/onboarding?auth=success")
+            return redirect(f"{FRONTEND_URL.rstrip('/')}/onboarding?token={token}")
 
     # Redirect to dashboard with success (fallback)
-    return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?auth=success")
+    return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?auth=failed")
 
 
 @app.route("/api/fetch-emails")
