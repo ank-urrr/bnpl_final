@@ -17,8 +17,13 @@ function Login() {
       .catch(err => console.log('Not authenticated'))
   }, [navigate])
 
+  const getLoginUrl = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin)
+    return `${apiUrl}/auth/login`
+  }
+
   const handleLogin = () => {
-    window.location.href = 'http://localhost:5000/auth/login'
+    window.location.href = getLoginUrl()
   }
 
   return (

@@ -44,7 +44,10 @@ function NewDashboard() {
         }
       }
     } catch (error) {
-      navigate('/')
+      console.error('Auth check error:', error)
+      setLoading(false)
+      showMessage('error', 'Failed to connect to backend. Please check your connection.')
+      setTimeout(() => navigate('/'), 2000)
     }
   }
 
