@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../api/axios'
 
 function Onboarding() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [authChecked, setAuthChecked] = useState(false)
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -19,15 +21,41 @@ function Onboarding() {
   })
 
   useEffect(() => {
-    // Check authentication
+    // If we have an auth code in URL, wait a bit for code exchange to complete
+    const code = searchParams.get('code')
+    console.log('[Onboarding] Checking auth, code in URL:', !!code)
+    
+    if (code) {
+      // Give code exchange time to complete (it should set token in localStorage)
+      const checkTimer = setTimeout(() => {
+        const token = localStorage.getItem('authToken')
+        console.log('[Onboarding] After code exchange, token present:', !!token)
+        setAuthChecked(true)
+        
+        if (!token) {
+          console.log('[Onboarding] No token after code exchange, redirecting to login')
+          navigate('/')
+        }
+      }, 1000)
+      return () => clearTimeout(checkTimer)
+    }
+    
+    // No code in URL - check auth status directly
+    console.log('[Onboarding] No code in URL, checking auth status')
     api.get('/auth/status')
       .then(res => {
+        console.log('[Onboarding] Auth status:', res.data)
+        setAuthChecked(true)
         if (!res.data.authenticated) {
           navigate('/')
         }
       })
-      .catch(() => navigate('/'))
-  }, [navigate])
+      .catch(err => {
+        console.error('[Onboarding] Auth check failed:', err)
+        setAuthChecked(true)
+        navigate('/')
+      })
+  }, [navigate, searchParams])
 
   const handleChange = (e) => {
     setFormData({
@@ -89,6 +117,17 @@ function Onboarding() {
   }
 
   const progress = (step / 3) * 100
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400 mb-4">Verifying authentication...</p>
+          <div className="w-8 h-8 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-6">

@@ -391,14 +391,18 @@ def login():
 def exchange_code():
     """Exchange temporary auth code for credentials"""
     code = request.args.get("code")
+    print(f"[Auth] Exchange code request: {code}")
+    print(f"[Auth] Available codes in store: {list(AUTH_CODE_STORE.keys())}")
     
     if not code or code not in AUTH_CODE_STORE:
+        print(f"[Auth] Code not found in store: {code}")
         return jsonify({"authenticated": False, "error": "Invalid or expired code"}), 401
     
     auth_data = AUTH_CODE_STORE[code]
     
     # Check if code expired
     if auth_data["expires"] < datetime.utcnow():
+        print(f"[Auth] Code expired: {code}")
         del AUTH_CODE_STORE[code]
         return jsonify({"authenticated": False, "error": "Code expired"}), 401
     
@@ -411,6 +415,7 @@ def exchange_code():
     
     # Cleanup
     del AUTH_CODE_STORE[code]
+    print(f"[Auth] Code exchanged successfully: {code}, email: {auth_data['email']}")
     
     return jsonify({
         "authenticated": True,
@@ -465,6 +470,7 @@ def logout():
 
 @app.route("/auth/callback")
 def callback():
+    print("[Auth] Callback triggered")
     flow = create_flow()
     flow.fetch_token(authorization_response=request.url)
 
@@ -481,6 +487,7 @@ def callback():
     
     # Get and store user email
     user_email = get_user_email(credentials)
+    print(f"[Auth] User email from Gmail: {user_email}")
     if user_email:
         session["user_email"] = user_email
         
@@ -498,17 +505,21 @@ def callback():
             },
             "expires": datetime.utcnow() + timedelta(minutes=5)
         }
+        print(f"[Auth] Code generated: {auth_code}, expires: {AUTH_CODE_STORE[auth_code]['expires']}")
         
         # Check if user has completed profile
         profile = get_user_profile(user_email)
         if profile and profile.get("full_name"):
             # Existing user - go to dashboard
+            print(f"[Auth] User has profile, redirecting to dashboard")
             return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?code={auth_code}")
         else:
             # New user - go to onboarding
+            print(f"[Auth] New user, redirecting to onboarding")
             return redirect(f"{FRONTEND_URL.rstrip('/')}/onboarding?code={auth_code}")
 
     # Redirect to dashboard with error (fallback)
+    print("[Auth] Failed to get user email")
     return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard?auth=failed")
 
 
