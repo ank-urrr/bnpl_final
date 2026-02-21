@@ -27,7 +27,7 @@ function NewDashboard() {
 
   useEffect(() => {
     checkAuth()
-  }, [navigate, searchParams])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount; checkAuth uses navigate/searchParams
 
   const checkAuth = async () => {
     try {

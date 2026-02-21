@@ -10,10 +10,10 @@ function Landing() {
     api.get('/auth/status')
       .then(res => {
         if (res.data.authenticated) {
-          navigate('/dashboard')
+          navigate('/dashboard', { replace: true })
         }
       })
-      .catch(err => console.log('Not authenticated'))
+      .catch(() => {})
   }, [navigate])
 
   const [backendAvailable, setBackendAvailable] = useState(null)
