@@ -20,9 +20,12 @@ function Sidebar({ activeSection, setActiveSection, onLogout }) {
       {/* Logo Section */}
       <div className="p-6 border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
         <div className="space-y-1">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-xl font-bold text-[#D4AF37]">BNPL</h1>
-            <h1 className="text-xl font-bold text-[#F5F5F5]">Guardian</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/logo.png" alt="FinPilot Logo" className="w-8 h-8 rounded-lg object-contain bg-[#121212] p-0.5 border border-[rgba(212,175,55,0.4)] shadow-[0_0_10px_rgba(212,175,55,0.2)]" />
+            <div className="flex items-baseline gap-0.5 mt-1">
+              <h1 className="text-xl font-bold text-[#D4AF37]">Fin</h1>
+              <h1 className="text-xl font-bold text-[#F5F5F5]">Pilot</h1>
+            </div>
           </div>
           <p className="text-xs text-[#A1A1AA] tracking-widest uppercase">Financial Intelligence</p>
         </div>

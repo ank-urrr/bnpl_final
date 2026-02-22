@@ -13,7 +13,7 @@ function Landing() {
           navigate('/dashboard', { replace: true })
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [navigate])
 
   const [backendAvailable, setBackendAvailable] = useState(null)
@@ -68,16 +68,16 @@ function Landing() {
       {/* Navigation */}
       <nav className="border-b backdrop-blur-sm" style={{ borderColor: 'rgba(212,175,55,0.15)' }}>
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <motion.div 
-            initial={{ opacity: 0 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-2xl font-bold"
           >
-            <span className="text-[#D4AF37]">BNPL</span>
-            <span className="text-[#F5F5F5] ml-2">Guardian</span>
+            <span className="text-[#D4AF37]">Fin</span>
+            <span className="text-[#F5F5F5] ml-2">Pilot</span>
           </motion.div>
-          <motion.div 
-            initial={{ opacity: 0 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-sm text-[#A1A1AA]"
@@ -107,11 +107,11 @@ function Landing() {
           </motion.div>
 
           {/* Subheadline */}
-          <motion.p 
+          <motion.p
             variants={itemVariants}
             className="text-xl text-[#A1A1AA] max-w-2xl mx-auto leading-relaxed"
           >
-            Elite financial intelligence for BNPL management. Track commitments, 
+            Elite financial intelligence for BNPL management. Track commitments,
             assess risk, and optimize your financial health with precision analytics.
           </motion.p>
 
@@ -123,14 +123,14 @@ function Landing() {
               </div>
             )}
 
-            <button 
+            <button
               onClick={handleLogin}
               disabled={backendAvailable === false}
               className={`group px-8 py-3 ${backendAvailable === false ? 'bg-gray-600 text-gray-300 cursor-not-allowed' : 'bg-[#D4AF37] text-[#121212]'} font-semibold rounded text-lg transition-all duration-300 hover:shadow-lg hover:shadow-[rgba(212,175,55,0.3)] hover:-translate-y-1 flex items-center gap-3 mx-auto`}
             >
-              <img 
-                src="https://www.google.com/favicon.ico" 
-                alt="Google" 
+              <img
+                src="https://www.google.com/favicon.ico"
+                alt="Google"
                 className="w-5 h-5"
               />
               <span>{backendAvailable === false ? 'Connect unavailable' : 'Connect with Gmail'}</span>
@@ -138,7 +138,7 @@ function Landing() {
           </motion.div>
 
           {/* Security Note */}
-          <motion.p 
+          <motion.p
             variants={itemVariants}
             className="text-sm text-[#A1A1AA] pt-2"
           >
@@ -211,7 +211,7 @@ function Landing() {
       {/* Footer */}
       <footer className="border-t mt-24" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
         <div className="max-w-6xl mx-auto px-6 py-12 text-center text-[#A1A1AA] text-sm">
-          <p>© 2026 BNPL Guardian. Financial intelligence, reimagined.</p>
+          <p>© 2026 FinPilot. Financial intelligence, reimagined.</p>
         </div>
       </footer>
     </div>

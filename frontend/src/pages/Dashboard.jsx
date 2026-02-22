@@ -6,13 +6,13 @@ import '../styles/Dashboard.css'
 function Dashboard() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  
+
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [salary, setSalary] = useState(30000)
   const [editingSalary, setEditingSalary] = useState(false)
-  
+
   const [riskData, setRiskData] = useState(null)
   const [records, setRecords] = useState([])
   const [syncMessage, setSyncMessage] = useState('')
@@ -26,7 +26,7 @@ function Dashboard() {
         } else {
           setUserEmail(res.data.email || '')
           loadData()
-          
+
           // Auto-sync if coming from OAuth callback
           if (searchParams.get('auth') === 'success') {
             syncEmails()
@@ -42,11 +42,11 @@ function Dashboard() {
       // Load salary
       const salaryRes = await api.get('/api/user/salary')
       setSalary(salaryRes.data.salary)
-      
+
       // Load records
       const recordsRes = await api.get('/api/bnpl/records')
       setRecords(recordsRes.data.records || [])
-      
+
       // Load risk score
       const riskRes = await api.get('/api/risk-score')
       setRiskData(riskRes.data)
@@ -60,14 +60,14 @@ function Dashboard() {
   const syncEmails = async () => {
     setSyncing(true)
     setSyncMessage('Syncing emails...')
-    
+
     try {
       const res = await api.get('/api/emails/sync')
       setSyncMessage(`✓ Synced ${res.data.bnpl_count} BNPL records from ${res.data.synced_count} emails`)
-      
+
       // Reload data after sync
       await loadData()
-      
+
       setTimeout(() => setSyncMessage(''), 5000)
     } catch (error) {
       setSyncMessage('✗ Error syncing emails')
@@ -124,12 +124,12 @@ function Dashboard() {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <div>
-          <h1>BNPL Guardian</h1>
+          <h1>FinPilot</h1>
           <p className="user-email">{userEmail}</p>
         </div>
         <div className="header-actions">
-          <button 
-            className="sync-btn" 
+          <button
+            className="sync-btn"
             onClick={syncEmails}
             disabled={syncing}
           >
@@ -197,7 +197,7 @@ function Dashboard() {
 
       <div className="records-section">
         <h2>BNPL Records ({records.length})</h2>
-        
+
         {records.length === 0 ? (
           <div className="empty-state">
             <p>No BNPL commitments detected.</p>

@@ -46,7 +46,7 @@ function Chatbot() {
         className="fixed bottom-6 right-6 z-40 px-4 py-3 rounded-full bg-[#D4AF37] text-[#121212] font-semibold shadow-lg shadow-[rgba(212,175,55,0.4)] flex items-center gap-2"
       >
         <span>💬</span>
-        <span>Ask Guardian AI</span>
+        <span>Ask FinPilot AI</span>
       </motion.button>
 
       {/* Chat window */}
@@ -60,7 +60,7 @@ function Chatbot() {
           >
             <div className="px-4 py-3 border-b border-[rgba(212,175,55,0.2)] flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#F5F5F5]">Guardian Assistant</p>
+                <p className="text-sm font-semibold text-[#F5F5F5]">FinPilot Assistant</p>
                 <p className="text-xs text-[#A1A1AA]">Ask anything about your BNPL health</p>
               </div>
               <button
@@ -82,11 +82,10 @@ function Chatbot() {
               {messages.map((m, idx) => (
                 <div
                   key={idx}
-                  className={`max-w-[85%] p-2 rounded-lg ${
-                    m.role === 'user'
+                  className={`max-w-[85%] p-2 rounded-lg ${m.role === 'user'
                       ? 'ml-auto bg-[#D4AF37] text-[#121212]'
                       : 'mr-auto bg-[#1E1E1E] text-[#F5F5F5] border border-[rgba(212,175,55,0.2)]'
-                  }`}
+                    }`}
                 >
                   {m.content}
                 </div>

@@ -45,9 +45,9 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>BNPL Guardian</h1>
+        <h1>FinPilot</h1>
         <p className="subtitle">Track your Buy Now Pay Later commitments</p>
-        
+
         <div className="features">
           <div className="feature">
             <span className="icon">📧</span>
@@ -64,9 +64,9 @@ function Login() {
         </div>
 
         <button className="login-btn" onClick={handleLogin} disabled={backendAvailable === false}>
-          <img 
-            src="https://www.google.com/favicon.ico" 
-            alt="Google" 
+          <img
+            src="https://www.google.com/favicon.ico"
+            alt="Google"
             className="google-icon"
           />
           {backendAvailable === false ? 'Connect unavailable' : 'Connect with Gmail'}
