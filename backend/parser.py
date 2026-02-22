@@ -7,7 +7,7 @@ ALLOWED_SENDERS = [
     'amazon', 'flipkart', 'paytm', 'phonepe', 'gpay', 'googlepay',
     'hdfc', 'icici', 'sbi', 'axis', 'kotak', 'bank',
     'card', 'credit', 'loan', 'statement', 'finance',
-    'bajaj', 'zestmoney', 'slice', 'uni', 'jupiter'
+    'bajaj', 'zestmoney', 'slice', 'uni', 'jupiter', 'gmail', 'yahoo', 'outlook'
 ]
 
 # Financial keywords that must be present
@@ -130,6 +130,7 @@ def extract_amount_with_priority(text):
     priority_patterns = [
         (r'(?:total due|amount due|minimum due|outstanding|pending)[:\s]*(?:rs\.?|₹|inr)?\s*[\d,]+(?:\.\d{2})?', 'high'),
         (r'(?:pay|payment|payable)[:\s]*(?:rs\.?|₹|inr)?\s*[\d,]+(?:\.\d{2})?', 'medium'),
+        (r'(?:amount)\s*(?:rs\.?|₹|inr)\s*[\d,]+(?:\.\d{2})?', 'medium'),
         (r'(?:rs\.?|₹|inr)\s*[\d,]+(?:\.\d{2})?', 'low'),
         (r'\d+(?:,\d+)*(?:\.\d{2})?\s*(?:rupees|rs)', 'low')
     ]
