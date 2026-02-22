@@ -1,4 +1,4 @@
-# BNPL Guardian
+# FinPilot
 
 A full-stack fintech web application that helps users track their Buy Now Pay Later (BNPL) commitments by analyzing Gmail messages.
 
