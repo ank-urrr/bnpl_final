@@ -139,13 +139,17 @@ def extract_amount_with_priority(text):
     for pattern, priority in priority_patterns:
         matches = re.finditer(pattern, text, re.IGNORECASE)
         for match in matches:
-            amount_str = re.sub(r'[^\d.]', '', match.group())
-            try:
-                amount = float(amount_str)
-                if amount > 0 and amount < 10000000:  # Reasonable range
-                    amounts.append((amount, priority))
-            except:
-                continue
+            matched_str = match.group()
+            # Extract just the digits, commas, and optional decimal
+            number_match = re.search(r'[\d,]+(?:\.\d{2})?', matched_str)
+            if number_match:
+                amount_str = number_match.group().replace(',', '')
+                try:
+                    amount = float(amount_str)
+                    if amount > 0 and amount < 10000000:  # Reasonable range
+                        amounts.append((amount, priority))
+                except:
+                    continue
     
     # Return highest priority amount
     if amounts:

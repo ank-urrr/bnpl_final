@@ -63,7 +63,8 @@ function Dashboard() {
 
     try {
       const res = await api.get('/api/emails/sync')
-      setSyncMessage(`✓ Synced ${res.data.bnpl_count} BNPL records from ${res.data.synced_count} emails`)
+      const data = res.data.data || {}
+      setSyncMessage(`✓ Synced ${data.bnpl_count || 0} BNPL records from ${data.synced_count || 0} emails`)
 
       // Reload data after sync
       await loadData()
